@@ -1,6 +1,6 @@
 package com.company.kafka.config;
 
-import com.company.kafka.error.KafkaErrorHandler;
+import com.company.kafka.error.EnhancedKafkaErrorHandler;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +21,8 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.transaction.KafkaTransactionManager;
+import com.company.kafka.filter.KafkaRecordFilters;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -109,6 +111,19 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, (int) producer.requestTimeout().toMillis());
         props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, (int) producer.deliveryTimeout().toMillis());
         
+        // Transaction settings for exactly-once semantics
+        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kafka-producer-tx");
+        props.put(ProducerConfig.TRANSACTION_TIMEOUT_CONFIG, 30000); // 30 seconds
+        
+        // Add producer interceptors for message enrichment
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, 
+            "com.company.kafka.interceptor.KafkaProducerInterceptor");
+        
+        // Interceptor configuration
+        props.put("interceptor.application.name", "spring-kafka-pro");
+        props.put("interceptor.application.version", "1.0.0");
+        props.put("interceptor.environment", kafkaProperties.security().enabled() ? "production" : "development");
+        
         // Add security configuration if enabled
         addSecurityConfiguration(props);
         
@@ -184,14 +199,24 @@ public class KafkaConfiguration {
     }
 
     /**
-     * Creates a Kafka listener container factory with error handling and concurrency.
+     * Creates a transactional Kafka template for exactly-once processing.
      * 
-     * @param kafkaErrorHandler the error handler for retry logic and dead letter topics
+     * @return configured transactional KafkaTemplate
+     */
+    @Bean
+    public KafkaTransactionManager<String, Object> kafkaTransactionManager() {
+        return new KafkaTransactionManager<>(producerFactory());
+    }
+
+    /**
+     * Creates a Kafka listener container factory with enhanced error handling and concurrency.
+     * 
+     * @param enhancedKafkaErrorHandler the enhanced error handler with poison pill detection and circuit breaker
      * @return configured ConcurrentKafkaListenerContainerFactory
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
-            KafkaErrorHandler kafkaErrorHandler) {
+            EnhancedKafkaErrorHandler enhancedKafkaErrorHandler) {
         
         log.info("Configuring Kafka listener container factory with error handling");
         
@@ -206,8 +231,8 @@ public class KafkaConfiguration {
         // Configure manual acknowledgment
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         
-        // Configure error handling with retry and dead letter topics
-        factory.setCommonErrorHandler(kafkaErrorHandler.createErrorHandler());
+        // Configure enhanced error handling with poison pill detection and circuit breaker
+        factory.setCommonErrorHandler(enhancedKafkaErrorHandler.createEnhancedErrorHandler());
         
         // Configure additional container properties
         ContainerProperties containerProps = factory.getContainerProperties();
@@ -215,6 +240,45 @@ public class KafkaConfiguration {
         
         log.info("Kafka listener container factory configured with concurrency: {}, ack-mode: manual", 
             kafkaProperties.consumer().concurrency());
+        
+        return factory;
+    }
+
+    /**
+     * Creates a batch Kafka listener container factory for high-throughput processing.
+     * 
+     * @param enhancedKafkaErrorHandler the enhanced error handler for retry logic and dead letter topics
+     * @return configured batch ConcurrentKafkaListenerContainerFactory
+     */
+    @Bean("batchKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, Object> batchKafkaListenerContainerFactory(
+            EnhancedKafkaErrorHandler enhancedKafkaErrorHandler) {
+        
+        log.info("Configuring batch Kafka listener container factory");
+        
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
+            new ConcurrentKafkaListenerContainerFactory<>();
+        
+        factory.setConsumerFactory(consumerFactory());
+        
+        // Configure batch processing
+        factory.setBatchListener(true);
+        
+        // Configure concurrency for batch processing
+        factory.setConcurrency(kafkaProperties.consumer().concurrency());
+        
+        // Configure manual acknowledgment for batches
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+        
+        // Configure error handling
+        factory.setCommonErrorHandler(enhancedKafkaErrorHandler.createEnhancedErrorHandler());
+        
+        // Configure batch-specific container properties
+        ContainerProperties containerProps = factory.getContainerProperties();
+        containerProps.setPollTimeout(Duration.ofSeconds(5).toMillis()); // Longer timeout for batches
+        containerProps.setIdleBetweenPolls(Duration.ofMillis(100).toMillis()); // Reduce idle time
+        
+        log.info("Batch Kafka listener container factory configured with batch processing enabled");
         
         return factory;
     }
