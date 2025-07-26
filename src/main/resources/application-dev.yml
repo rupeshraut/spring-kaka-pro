@@ -1,0 +1,64 @@
+# Development Environment Configuration
+
+spring:
+  profiles:
+    active: dev
+    
+# Kafka Configuration for Development
+kafka:
+  bootstrap-servers: localhost:9092
+  
+  consumer:
+    group-id: spring-kafka-pro-dev-group
+    concurrency: 1  # Lower concurrency for development
+    
+  topics:
+    configs:
+      orders:
+        name: dev-orders-topic
+        partitions: 1  # Single partition for development
+        replication-factor: 1
+      payments:
+        name: dev-payments-topic
+        partitions: 1
+        replication-factor: 1
+      notifications:
+        name: dev-notifications-topic
+        partitions: 1
+        replication-factor: 1
+
+# Development Server Configuration
+server:
+  port: 8080
+
+# Enhanced logging for development
+logging:
+  level:
+    com.company.kafka: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Development-specific management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expose all endpoints in development
+  endpoint:
+    health:
+      show-details: always
+    loggers:
+      enabled: true
+    env:
+      enabled: true
+    beans:
+      enabled: true
+
+# Development tracing (optional)
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # Sample all traces in development

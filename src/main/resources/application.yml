@@ -1,0 +1,150 @@
+spring:
+  application:
+    name: spring-kafka-pro
+  
+  profiles:
+    active: dev
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
+    producer:
+      acks: all
+      retries: 2147483647
+      batch-size: 32768
+      buffer-memory: 67108864
+      compression-type: snappy
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        "[linger.ms]": 20
+        "[enable.idempotence]": true
+        "[max.in.flight.requests.per.connection]": 1
+        "[request.timeout.ms]": 30000
+        "[delivery.timeout.ms]": 120000
+      
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:spring-kafka-pro-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      max-poll-records: 500
+      isolation-level: read-committed
+      properties:
+        "[max.poll.interval.ms]": 300000
+        "[session.timeout.ms]": 30000
+        "[heartbeat.interval.ms]": 10000
+        "[fetch.min.bytes]": 50000
+        "[fetch.max.wait.ms]": 500
+        "[spring.json.trusted.packages]": "com.company.kafka.model"
+        "[spring.json.use.type.info.headers]": false
+        "[spring.json.value.default.type]": "com.company.kafka.model.GenericMessage"
+    
+    listener:
+      ack-mode: manual-immediate
+      concurrency: 3
+
+# Custom Kafka Properties
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  
+  producer:
+    acks: all
+    retries: 2147483647
+    batch-size: 32768
+    linger-ms: 20
+    compression-type: snappy
+    buffer-memory: 67108864
+    enable-idempotence: true
+    max-in-flight-requests-per-connection: 1
+    request-timeout: PT30S
+    delivery-timeout: PT2M
+    
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP:spring-kafka-pro-group}
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+    max-poll-records: 500
+    max-poll-interval: PT5M
+    session-timeout: PT30S
+    heartbeat-interval: PT10S
+    fetch-min-bytes: 50000
+    fetch-max-wait: PT0.5S
+    isolation-level: read_committed
+    concurrency: 3
+    
+  admin:
+    request-timeout: PT30S
+    retries: 3
+    retry-backoff: PT1S
+    
+  security:
+    enabled: false
+    protocol: PLAINTEXT
+    ssl:
+      trust-store-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:}
+      trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD:}
+      key-store-location: ${KAFKA_SSL_KEYSTORE_LOCATION:}
+      key-store-password: ${KAFKA_SSL_KEYSTORE_PASSWORD:}
+      key-store-type: PKCS12
+    sasl:
+      mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      jaas-config: ${KAFKA_SASL_JAAS_CONFIG:}
+      
+  topics:
+    orders:
+      name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+      partitions: ${KAFKA_ORDERS_PARTITIONS:3}
+      replication-factor: ${KAFKA_ORDERS_REPLICATION:1}
+    payments:
+      name: ${KAFKA_PAYMENTS_TOPIC:payments-topic}  
+      partitions: ${KAFKA_PAYMENTS_PARTITIONS:3}
+      replication-factor: ${KAFKA_PAYMENTS_REPLICATION:1}
+    notifications:
+      name: ${KAFKA_NOTIFICATIONS_TOPIC:notifications-topic}
+      partitions: ${KAFKA_NOTIFICATIONS_PARTITIONS:3}
+      replication-factor: ${KAFKA_NOTIFICATIONS_REPLICATION:1}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+    metrics:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 30s
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+        "[kafka.producer.send.time]": true
+        "[kafka.consumer.processing.time]": true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+
+# Logging Configuration
+logging:
+  level:
+    "[com.company.kafka]": INFO
+    "[org.springframework.kafka]": INFO
+    "[org.apache.kafka]": WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

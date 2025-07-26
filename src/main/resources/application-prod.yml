@@ -1,0 +1,143 @@
+# Production Environment Configuration
+
+spring:
+  profiles:
+    active: prod
+
+# Production Kafka Configuration
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka1:9092,kafka2:9092,kafka3:9092}
+  
+  producer:
+    # Production optimizations
+    batch-size: 65536  # Larger batches for better throughput
+    linger-ms: 50      # Slightly higher linger for better batching
+    buffer-memory: 134217728  # 128MB buffer for high throughput
+    
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP:spring-kafka-pro-prod-group}
+    concurrency: ${KAFKA_CONSUMER_CONCURRENCY:5}  # Higher concurrency for production
+    max-poll-records: 1000  # Process more records per poll
+    
+  admin:
+    request-timeout: PT60S  # Longer timeout for production
+    
+  security:
+    enabled: ${KAFKA_SECURITY_ENABLED:true}
+    protocol: ${KAFKA_SECURITY_PROTOCOL:SASL_SSL}
+    ssl:
+      trust-store-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:classpath:kafka.client.truststore.jks}
+      trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      key-store-location: ${KAFKA_SSL_KEYSTORE_LOCATION:classpath:kafka.client.keystore.jks}
+      key-store-password: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+    sasl:
+      mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      jaas-config: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${KAFKA_USERNAME}"
+        password="${KAFKA_PASSWORD}";
+        
+  topics:
+    configs:
+      orders:
+        name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+        partitions: ${KAFKA_ORDERS_PARTITIONS:6}
+        replication-factor: ${KAFKA_ORDERS_REPLICATION:3}
+      payments:
+        name: ${KAFKA_PAYMENTS_TOPIC:payments-topic}
+        partitions: ${KAFKA_PAYMENTS_PARTITIONS:6}
+        replication-factor: ${KAFKA_PAYMENTS_REPLICATION:3}
+      notifications:
+        name: ${KAFKA_NOTIFICATIONS_TOPIC:notifications-topic}
+        partitions: ${KAFKA_NOTIFICATIONS_PARTITIONS:3}
+        replication-factor: ${KAFKA_NOTIFICATIONS_REPLICATION:3}
+
+# Production Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 30s
+    max-connections: 10000
+    max-threads: 200
+    min-spare-threads: 50
+
+# Production Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+    metrics:
+      enabled: true
+  health:
+    kafka:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+        "[kafka.producer.send.time]": true
+        "[kafka.consumer.processing.time]": true
+
+# Production Logging Configuration
+logging:
+  level:
+    com.company.kafka: INFO
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.springframework.security: WARN
+    root: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] [%logger{36}] - %msg%n"
+  file:
+    name: ${LOG_FILE:/var/log/spring-kafka-pro/application.log}
+    max-size: 100MB
+    max-history: 30
+
+# JVM and Performance Tuning
+spring:
+  jmx:
+    enabled: true
+  kafka:
+    producer:
+      properties:
+        # Production JVM tuning for Kafka producer
+        "max.request.size": 10485760  # 10MB max request size
+        "connections.max.idle.ms": 540000  # 9 minutes
+        "metadata.max.age.ms": 300000  # 5 minutes
+    consumer:
+      properties:
+        # Production JVM tuning for Kafka consumer
+        "receive.buffer.bytes": 65536  # 64KB receive buffer
+        "send.buffer.bytes": 131072    # 128KB send buffer
+        "auto.commit.interval.ms": 5000
+
+# Production Health Checks
+management:
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# Graceful Shutdown Configuration
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s

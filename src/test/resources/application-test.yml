@@ -1,0 +1,42 @@
+# Minimal Test Configuration
+
+kafka:
+  bootstrap-servers: localhost:9092
+  
+  producer:
+    acks: "all"
+    retries: 0
+    
+  consumer:
+    group-id: test-group
+    auto-offset-reset: earliest
+    concurrency: 1
+    
+  admin:
+    request-timeout: 10s
+    
+  security:
+    enabled: false
+    
+  topics:
+    orders:
+      name: test-orders-topic
+      partitions: 1
+      replication-factor: 1
+    payments:
+      name: test-payments-topic
+      partitions: 1
+      replication-factor: 1
+    notifications:
+      name: test-notifications-topic
+      partitions: 1
+      replication-factor: 1
+
+# Test Server Configuration
+server:
+  port: 0
+
+# Minimal logging
+logging:
+  level:
+    root: WARN
