@@ -119,6 +119,16 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, 
             "com.company.kafka.interceptor.KafkaProducerInterceptor");
         
+        // Configure custom partitioner
+        props.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, 
+            "com.company.kafka.partition.CustomPartitioner");
+        
+        // Partitioner configuration (would be injected from PartitioningProperties)
+        props.put("partitioner.strategy", "HASH"); // Default strategy
+        props.put("partitioner.sticky.partition.count", "2");
+        props.put("partitioner.priority.partition.ratio", "0.2");
+        props.put("partitioner.customer.hash.seed", "12345");
+        
         // Interceptor configuration
         props.put("interceptor.application.name", "spring-kafka-pro");
         props.put("interceptor.application.version", "1.0.0");
