@@ -15,6 +15,13 @@ A comprehensive, production-ready Spring Boot application demonstrating best pra
 
 ### Advanced Features
 
+#### 🎯 **Smart Partitioning Strategies**
+- **Producer Partitioning**: 8 advanced strategies including customer-aware, geographic, priority-based, and load-aware partitioning
+- **Consumer Assignment**: 6 intelligent algorithms for optimal partition-to-consumer assignment
+- **Real-time Monitoring**: Live partition distribution tracking and performance analytics
+- **Auto-optimization**: Automatic rebalancing recommendations based on workload patterns
+- **Management APIs**: RESTful endpoints for runtime configuration and monitoring
+
 #### 🔄 **Enhanced Error Handling**
 - **Poison Pill Detection**: Automatic identification and quarantine of consistently failing messages
 - **Circuit Breaker Pattern**: Prevents cascade failures when external services are down
@@ -54,6 +61,7 @@ A comprehensive, production-ready Spring Boot application demonstrating best pra
 
 - [Quick Start](#quick-start)
 - [Architecture](#architecture)
+- [Partitioning Strategies](#partitioning-strategies)
 - [Configuration](#configuration)
 - [Monitoring & Observability](#monitoring--observability)
 - [Error Handling](#error-handling)
@@ -168,6 +176,328 @@ services:
 4. **KafkaHealthIndicator**: Monitors Kafka connectivity and health
 5. **KafkaMetrics**: Collects and exposes metrics for monitoring
 6. **Error Handling**: Automatic retry and dead letter topic routing
+
+## 🎯 Partitioning Strategies
+
+This application features advanced partitioning strategies for optimal message distribution and consumer assignment.
+
+### Producer Partitioning Strategies
+
+The `CustomPartitioner` provides 8 sophisticated partitioning algorithms:
+
+#### 1. **Round Robin** (`ROUND_ROBIN`)
+Distributes messages evenly across all partitions for balanced load distribution.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: ROUND_ROBIN
+```
+
+**Use Cases:**
+- Uniform message processing requirements
+- When message ordering is not critical
+- Load balancing across all partitions
+
+#### 2. **Hash-Based** (`HASH`)
+Uses message key hash for consistent partitioning (default Kafka behavior).
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: HASH
+```
+
+**Use Cases:**
+- When message ordering by key is required
+- Consistent routing of related messages
+- Standard Kafka partitioning behavior
+
+#### 3. **Sticky Partitioning** (`STICKY`)
+Assigns messages to specific partitions for better batching efficiency.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: STICKY
+      sticky:
+        partition-count: 2
+        enable-thread-affinity: true
+        affinity-timeout: PT5M
+```
+
+**Use Cases:**
+- High-throughput scenarios requiring optimal batching
+- Reducing network overhead
+- When processing order within thread matters
+
+#### 4. **Customer-Aware** (`CUSTOMER_AWARE`)
+Routes messages by customer ID for data locality and processing efficiency.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: CUSTOMER_AWARE
+      customer:
+        hash-seed: 54321
+        customer-id-field: customerId
+        enable-caching: true
+        cache-size: 10000
+```
+
+**Use Cases:**
+- Customer-specific processing requirements
+- Data locality for customer analytics
+- Tenant isolation in multi-tenant systems
+
+#### 5. **Geographic Partitioning** (`GEOGRAPHIC`)
+Distributes messages based on geographic regions.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: GEOGRAPHIC
+      geographic:
+        regions: ["us-east", "us-west", "eu", "asia"]
+        region-field: region
+        enable-cross-border-fallback: true
+        default-region: us-east
+```
+
+**Use Cases:**
+- Multi-region deployments
+- Compliance with data residency requirements
+- Latency optimization for regional processing
+
+#### 6. **Priority-Based** (`PRIORITY`)
+Routes high-priority messages to dedicated partitions for faster processing.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: PRIORITY
+      priority:
+        partition-ratio: 0.3
+        priority-field: priority
+        high-priority-values: ["HIGH", "CRITICAL", "URGENT"]
+        enable-dynamic-adjustment: false
+```
+
+**Use Cases:**
+- SLA-differentiated message processing
+- Critical message prioritization
+- Quality of Service (QoS) requirements
+
+#### 7. **Time-Based** (`TIME_BASED`)
+Partitions messages based on time windows for temporal processing.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: TIME_BASED
+      time-based:
+        time-window: PT1M
+        use-utc-time: true
+        time-field: timestamp
+```
+
+**Use Cases:**
+- Time-series data processing
+- Batch processing windows
+- Temporal data organization
+
+#### 8. **Load-Aware** (`LOAD_AWARE`)
+Dynamically routes messages to avoid hot partitions.
+
+```yaml
+kafka:
+  partitioning:
+    producer:
+      strategy: LOAD_AWARE
+      load-aware:
+        load-threshold: 1000
+        metrics-window: PT1M
+        enable-hot-partition-avoidance: true
+        load-balancing-factor: 1.5
+```
+
+**Use Cases:**
+- Preventing hot partition bottlenecks
+- Dynamic load balancing
+- Adaptive performance optimization
+
+### Consumer Assignment Strategies
+
+The `CustomConsumerAssignmentStrategy` provides 6 intelligent assignment algorithms:
+
+#### 1. **Affinity-Based** (`AFFINITY_BASED`)
+Maintains consumer-partition relationships for sticky assignments.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: AFFINITY_BASED
+      affinity:
+        enable-sticky-assignment: true
+        stickiness-factor: 0.8
+        affinity-timeout: PT10M
+```
+
+#### 2. **Load-Balanced** (`LOAD_BALANCED`)
+Distributes partitions based on consumer processing capacity.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: LOAD_BALANCED
+      metadata:
+        capacity: 2000
+        priority: MEDIUM
+```
+
+#### 3. **Rack-Aware** (`RACK_AWARE`)
+Assigns partitions considering consumer rack locality.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: RACK_AWARE
+      metadata:
+        rack: us-east-1a
+        region: us-east
+```
+
+#### 4. **Priority-Based** (`PRIORITY_BASED`)
+Prioritizes high-priority consumers for partition assignment.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: PRIORITY_BASED
+      metadata:
+        priority: HIGH
+        capacity: 3000
+```
+
+#### 5. **Geographic** (`GEOGRAPHIC`)
+Groups consumers by geographic region for optimal assignment.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: GEOGRAPHIC
+      metadata:
+        region: eu-west-1
+        rack: eu-west-1a
+```
+
+#### 6. **Workload-Aware** (`WORKLOAD_AWARE`)
+Assigns partitions based on consumer capabilities and preferences.
+
+```yaml
+kafka:
+  partitioning:
+    consumer:
+      assignment-strategy: WORKLOAD_AWARE
+      metadata:
+        capabilities: ["BATCH_PROCESSING", "JSON", "AVRO"]
+        preferences: ["HIGH_THROUGHPUT", "LOW_LATENCY"]
+        capacity: 2500
+```
+
+### Monitoring and Management
+
+#### Real-time Monitoring
+
+Monitor partition distribution and performance:
+
+```bash
+# Get current partitioning configuration
+curl http://localhost:8080/api/kafka/partitioning/config
+
+# Get partition monitoring statistics
+curl http://localhost:8080/api/kafka/partitioning/monitor
+
+# Get detailed partition distribution metrics
+curl http://localhost:8080/api/kafka/partitioning/distribution
+```
+
+#### Performance Optimization
+
+Get recommendations for improving partitioning performance:
+
+```bash
+# Get optimization recommendations
+curl http://localhost:8080/api/kafka/partitioning/recommendations
+
+# Run optimization analysis (dry run)
+curl -X POST "http://localhost:8080/api/kafka/partitioning/optimize?dryRun=true"
+
+# Apply optimizations
+curl -X POST http://localhost:8080/api/kafka/partitioning/optimize
+```
+
+#### Health Monitoring
+
+Check partitioning system health:
+
+```bash
+# Get partitioning health status
+curl http://localhost:8080/api/kafka/partitioning/health
+
+# Get detailed metrics
+curl http://localhost:8080/api/kafka/partitioning/metrics
+
+# Reset monitoring metrics
+curl -X POST http://localhost:8080/api/kafka/partitioning/reset-metrics
+```
+
+### Best Practices
+
+#### Producer Partitioning
+✅ **Choose the right strategy** based on your use case:
+- Use `CUSTOMER_AWARE` for tenant isolation
+- Use `PRIORITY` for SLA differentiation  
+- Use `GEOGRAPHIC` for compliance requirements
+- Use `LOAD_AWARE` for dynamic optimization
+
+✅ **Monitor partition distribution** regularly:
+- Track partition skew metrics
+- Monitor hot partition detection
+- Set up alerts for imbalanced distribution
+
+✅ **Configure appropriate parameters**:
+- Set realistic cache sizes for customer-aware partitioning
+- Configure proper time windows for time-based partitioning
+- Adjust load thresholds based on your traffic patterns
+
+#### Consumer Assignment
+✅ **Match strategy to deployment**:
+- Use `RACK_AWARE` in multi-AZ deployments
+- Use `LOAD_BALANCED` with heterogeneous consumers
+- Use `WORKLOAD_AWARE` for specialized processing capabilities
+
+✅ **Configure consumer metadata properly**:
+- Set accurate capacity values
+- Specify correct rack and region information
+- Define realistic capabilities and preferences
+
+✅ **Monitor assignment efficiency**:
+- Track consumer utilization metrics
+- Monitor rebalancing frequency
+- Watch for assignment skew
 
 ## ⚙️ Configuration
 
