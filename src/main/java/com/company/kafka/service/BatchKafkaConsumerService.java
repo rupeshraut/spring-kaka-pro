@@ -120,7 +120,7 @@ public class BatchKafkaConsumerService {
                     log.debug("Processing message {}/{} - topic: {}, partition: {}, offset: {}, correlationId: {}", 
                         i + 1, batchSize, topic, partition, offset, correlationId);
                     
-                    // Validate and process individual message
+                    // Validate and process an individual message
                     validateMessage(message, "order");
                     processOrderEvent(message, correlationId + "-" + i);
                     
