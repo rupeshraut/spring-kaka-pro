@@ -75,3 +75,7 @@ tasks.compileJava {
 tasks.compileTestJava {
     options.encoding = "UTF-8"
 }
+
+springBoot {
+    mainClass.set("com.company.kafka.KafkaApplication")
+}
