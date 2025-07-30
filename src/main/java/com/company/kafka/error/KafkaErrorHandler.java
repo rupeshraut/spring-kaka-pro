@@ -62,8 +62,7 @@ import java.util.function.BiFunction;
 public class KafkaErrorHandler {
 
     private final KafkaOperations<String, Object> kafkaTemplate;
-    private final MeterRegistry meterRegistry;
-    
+
     // Error metrics
     private final Counter retryAttemptsCounter;
     private final Counter deadLetterPublishedCounter;
@@ -73,8 +72,7 @@ public class KafkaErrorHandler {
 
     public KafkaErrorHandler(KafkaOperations<String, Object> kafkaTemplate, MeterRegistry meterRegistry) {
         this.kafkaTemplate = kafkaTemplate;
-        this.meterRegistry = meterRegistry;
-        
+
         // Initialize error metrics
         this.retryAttemptsCounter = Counter.builder("kafka.error.retry.attempts")
                 .description("Number of message retry attempts")
