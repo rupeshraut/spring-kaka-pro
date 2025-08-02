@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Property Sizing Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .info-box {
+            background: #e8f4f8;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Kafka Property Sizing Calculator</h1>
+        
+        <div class="info-box">
+            <h3>📊 What does this tool do?</h3>
+            <p>This calculator helps you determine optimal Kafka producer, consumer, and topic configurations based on your specific throughput, latency, and durability requirements.</p>
+        </div>
+
+        <form action="/kafka-sizing/calculate" method="post">
+            <div class="two-column">
+                <div class="form-group">
+                    <label for="messagesPerSecond">📈 Messages per Second</label>
+                    <input type="number" id="messagesPerSecond" name="messagesPerSecond" 
+                           th:value="${messagesPerSecond}" min="1" max="1000000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="messageSize">📦 Average Message Size (bytes)</label>
+                    <input type="number" id="messageSize" name="messageSize" 
+                           th:value="${messageSize}" min="1" max="10485760" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="processingTime">⏱️ Processing Time per Message (ms)</label>
+                    <input type="number" id="processingTime" name="processingTime" 
+                           th:value="${processingTime}" min="1" max="60000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="consumerCount">👥 Number of Consumers</label>
+                    <input type="number" id="consumerCount" name="consumerCount" 
+                           th:value="${consumerCount}" min="1" max="100" required>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="lowLatency" name="lowLatency" th:checked="${lowLatency}">
+                        <label for="lowLatency">⚡ Require Low Latency</label>
+                    </div>
+                    <small style="color: #666;">Optimize for minimal delay over throughput</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="highDurability" name="highDurability" th:checked="${highDurability}">
+                        <label for="highDurability">🛡️ Require High Durability</label>
+                    </div>
+                    <small style="color: #666;">Ensure messages are safely replicated</small>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">🚀 Calculate Optimal Settings</button>
+        </form>
+
+        <div class="info-box" style="margin-top: 30px;">
+            <h3>💡 Tips for Better Results</h3>
+            <ul>
+                <li><strong>Messages per Second:</strong> Peak expected throughput, not average</li>
+                <li><strong>Message Size:</strong> Include headers and serialization overhead</li>
+                <li><strong>Processing Time:</strong> Total time including database calls, validation, etc.</li>
+                <li><strong>Low Latency:</strong> Choose if sub-100ms response time is critical</li>
+                <li><strong>High Durability:</strong> Enable for financial or critical business data</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

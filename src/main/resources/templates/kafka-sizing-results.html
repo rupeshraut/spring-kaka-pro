@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Sizing Results</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-summary {
+            background: #e8f4f8;
+            border: 1px solid #bee5eb;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        .result-section {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .result-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .property {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .property:last-child {
+            border-bottom: none;
+        }
+        .property-name {
+            font-weight: 600;
+            color: #34495e;
+        }
+        .property-value {
+            font-family: 'Courier New', monospace;
+            background: #ecf0f1;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: #2c3e50;
+        }
+        .yaml-config {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .tips {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 600px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Kafka Sizing Results</h1>
+
+        <div class="input-summary">
+            <h3>📊 Your Requirements</h3>
+            <div class="two-column">
+                <div>
+                    <strong>Messages per Second:</strong> <span th:text="${messagesPerSecond}">1000</span><br>
+                    <strong>Message Size:</strong> <span th:text="${messageSize}">1024</span> bytes<br>
+                    <strong>Processing Time:</strong> <span th:text="${processingTime}">10</span> ms
+                </div>
+                <div>
+                    <strong>Consumer Count:</strong> <span th:text="${consumerCount}">3</span><br>
+                    <strong>Low Latency:</strong> <span th:text="${lowLatency}">false</span><br>
+                    <strong>High Durability:</strong> <span th:text="${highDurability}">true</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-grid">
+            <div class="result-section">
+                <h3>🚀 Producer Settings</h3>
+                <div class="property">
+                    <span class="property-name">Batch Size</span>
+                    <span class="property-value" th:text="${recommendations.producer.batchSize} + ' bytes'">16384 bytes</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Linger Time</span>
+                    <span class="property-value" th:text="${recommendations.producer.lingerMs} + ' ms'">100 ms</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Buffer Memory</span>
+                    <span class="property-value" th:text="${recommendations.producer.bufferMemory / 1024 / 1024} + ' MB'">64 MB</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Acknowledgments</span>
+                    <span class="property-value" th:text="${recommendations.producer.acks}">all</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Compression</span>
+                    <span class="property-value" th:text="${recommendations.producer.compressionType}">snappy</span>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>📥 Consumer Settings</h3>
+                <div class="property">
+                    <span class="property-name">Max Poll Records</span>
+                    <span class="property-value" th:text="${recommendations.consumer.maxPollRecords}">500</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Max Poll Interval</span>
+                    <span class="property-value" th:text="${recommendations.consumer.maxPollIntervalMs / 1000} + ' sec'">300 sec</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Session Timeout</span>
+                    <span class="property-value" th:text="${recommendations.consumer.sessionTimeoutMs / 1000} + ' sec'">30 sec</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Fetch Min Bytes</span>
+                    <span class="property-value" th:text="${recommendations.consumer.fetchMinBytes}">50000</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Concurrency</span>
+                    <span class="property-value" th:text="${recommendations.consumer.concurrency}">1</span>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>📋 Topic Settings</h3>
+                <div class="property">
+                    <span class="property-name">Partitions</span>
+                    <span class="property-value" th:text="${recommendations.topic.partitions}">3</span>
+                </div>
+                <div class="property">
+                    <span class="property-name">Replication Factor</span>
+                    <span class="property-value" th:text="${recommendations.topic.replicationFactor}">3</span>
+                </div>
+            </div>
+        </div>
+
+        <h3>📄 Spring Boot Configuration (YAML)</h3>
+        <div class="yaml-config">
+<span style="color: #f39c12;">kafka:</span>
+  <span style="color: #f39c12;">producer:</span>
+    <span style="color: #e74c3c;">batch-size:</span> <span th:text="${recommendations.producer.batchSize}">16384</span>
+    <span style="color: #e74c3c;">linger-ms:</span> <span th:text="${recommendations.producer.lingerMs}">100</span>
+    <span style="color: #e74c3c;">buffer-memory:</span> <span th:text="${recommendations.producer.bufferMemory}">67108864</span>
+    <span style="color: #e74c3c;">acks:</span> "<span th:text="${recommendations.producer.acks}">all</span>"
+    <span style="color: #e74c3c;">compression-type:</span> "<span th:text="${recommendations.producer.compressionType}">snappy</span>"
+    <span style="color: #e74c3c;">enable-idempotence:</span> true
+
+  <span style="color: #f39c12;">consumer:</span>
+    <span style="color: #e74c3c;">max-poll-records:</span> <span th:text="${recommendations.consumer.maxPollRecords}">500</span>
+    <span style="color: #e74c3c;">max-poll-interval:</span> <span th:text="${recommendations.consumer.maxPollIntervalMs}">300000</span>ms
+    <span style="color: #e74c3c;">session-timeout:</span> <span th:text="${recommendations.consumer.sessionTimeoutMs}">30000</span>ms
+    <span style="color: #e74c3c;">fetch-min-bytes:</span> <span th:text="${recommendations.consumer.fetchMinBytes}">50000</span>
+    <span style="color: #e74c3c;">concurrency:</span> <span th:text="${recommendations.consumer.concurrency}">1</span>
+
+  <span style="color: #f39c12;">topics:</span>
+    <span style="color: #f39c12;">orders:</span>
+      <span style="color: #e74c3c;">partitions:</span> <span th:text="${recommendations.topic.partitions}">3</span>
+      <span style="color: #e74c3c;">replication-factor:</span> <span th:text="${recommendations.topic.replicationFactor}">3</span>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/kafka-sizing" class="btn">🔄 Calculate Again</a>
+            <button onclick="copyYamlConfig()" class="btn btn-secondary">📋 Copy YAML</button>
+        </div>
+
+        <div class="tips">
+            <h3>💡 Next Steps</h3>
+            <ul>
+                <li><strong>Test:</strong> Start with these values in a development environment</li>
+                <li><strong>Monitor:</strong> Watch consumer lag, producer throughput, and error rates</li>
+                <li><strong>Tune:</strong> Adjust based on actual performance metrics</li>
+                <li><strong>Load Test:</strong> Validate with realistic data patterns and volumes</li>
+                <li><strong>Review:</strong> Check the complete sizing guide in KAFKA_SIZING_GUIDE.md</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyYamlConfig() {
+            const yamlConfig = document.querySelector('.yaml-config').innerText;
+            navigator.clipboard.writeText(yamlConfig).then(function() {
+                alert('YAML configuration copied to clipboard!');
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>

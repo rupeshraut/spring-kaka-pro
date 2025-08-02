@@ -1,0 +1,255 @@
+# Kafka Property Sizing Examples
+# Production-ready configurations for different scales
+
+# ==============================================================================
+# HIGH THROUGHPUT CONFIGURATION
+# For applications processing 10K-100K messages/second
+# ==============================================================================
+spring:
+  profiles: high-throughput
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  
+  producer:
+    # Batching Configuration - Optimize for throughput
+    acks: "all"                           # Wait for all replicas
+    retries: 2147483647                   # Retry indefinitely
+    batch-size: 65536                     # 64KB batches for efficiency
+    linger-ms: 100                        # Wait 100ms to fill batches
+    compression-type: "snappy"            # Fast compression
+    buffer-memory: 134217728              # 128MB buffer for high volume
+    enable-idempotence: true              # Prevent duplicates
+    max-in-flight-requests-per-connection: 5  # Higher concurrency
+    request-timeout: 30s                  # Standard timeout
+    delivery-timeout: 300s                # 5 minute total timeout
+    
+  consumer:
+    # Consumer Configuration - High throughput processing
+    group-id: ${KAFKA_CONSUMER_GROUP:high-throughput-group}
+    auto-offset-reset: "earliest"
+    enable-auto-commit: false             # Manual commit for reliability
+    max-poll-records: 1000                # Large batches
+    max-poll-interval: 15m                # Allow time for processing
+    session-timeout: 45s                  # Stable sessions
+    heartbeat-interval: 15s               # Regular heartbeats
+    fetch-min-bytes: 100000               # 100KB minimum fetch
+    fetch-max-wait: 1s                    # Wait up to 1s for data
+    isolation-level: "read_committed"     # Consistent reads
+    concurrency: 8                        # High parallelism
+    
+  admin:
+    request-timeout: 30s
+    retries: 5
+    retry-backoff: 2s
+    
+  topics:
+    orders:
+      name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+      partitions: 12                      # High parallelism
+      replication-factor: 3               # Durability
+    payments:
+      name: ${KAFKA_PAYMENTS_TOPIC:payments-topic}
+      partitions: 12
+      replication-factor: 3
+    notifications:
+      name: ${KAFKA_NOTIFICATIONS_TOPIC:notifications-topic}
+      partitions: 6                       # Lower volume topic
+      replication-factor: 3
+
+---
+# ==============================================================================
+# LOW LATENCY CONFIGURATION  
+# For applications requiring < 10ms end-to-end latency
+# ==============================================================================
+spring:
+  profiles: low-latency
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  
+  producer:
+    # Latency-optimized configuration
+    acks: "1"                             # Leader only for speed
+    retries: 3                            # Limited retries
+    batch-size: 1024                      # Small batches
+    linger-ms: 0                          # Send immediately
+    compression-type: "none"              # No compression delay
+    buffer-memory: 33554432               # 32MB buffer
+    enable-idempotence: false             # Disable for speed
+    max-in-flight-requests-per-connection: 1  # Ordered delivery
+    request-timeout: 10s                  # Fast timeout
+    delivery-timeout: 30s                 # Quick failure
+    
+  consumer:
+    # Low latency consumer settings
+    group-id: ${KAFKA_CONSUMER_GROUP:low-latency-group}
+    auto-offset-reset: "latest"           # Only new messages
+    enable-auto-commit: true              # Auto commit for speed
+    max-poll-records: 50                  # Small batches
+    max-poll-interval: 2m                 # Quick processing
+    session-timeout: 10s                  # Fast failure detection
+    heartbeat-interval: 3s                # Frequent heartbeats
+    fetch-min-bytes: 1                    # Return any data
+    fetch-max-wait: 50ms                  # Minimal wait
+    isolation-level: "read_uncommitted"   # Fastest reads
+    concurrency: 1                        # Single thread per partition
+    
+  topics:
+    orders:
+      name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+      partitions: 3                       # Moderate parallelism
+      replication-factor: 2               # Balance durability/speed
+
+---
+# ==============================================================================
+# BULK PROCESSING CONFIGURATION
+# For batch jobs and ETL processes
+# ==============================================================================
+spring:
+  profiles: bulk-processing
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  
+  producer:
+    # Optimized for large volume batch processing
+    acks: "all"                           # Full durability
+    retries: 2147483647                   # Unlimited retries
+    batch-size: 131072                    # 128KB batches
+    linger-ms: 1000                       # Wait 1s for max batching
+    compression-type: "lz4"               # Good compression ratio
+    buffer-memory: 268435456              # 256MB buffer
+    enable-idempotence: true              # Prevent duplicates
+    max-in-flight-requests-per-connection: 5
+    request-timeout: 60s                  # Longer timeout
+    delivery-timeout: 600s                # 10 minute timeout
+    
+  consumer:
+    # Bulk processing consumer
+    group-id: ${KAFKA_CONSUMER_GROUP:bulk-processing-group}
+    auto-offset-reset: "earliest"
+    enable-auto-commit: false             # Manual commit control
+    max-poll-records: 5000                # Very large batches
+    max-poll-interval: 60m                # Allow long processing
+    session-timeout: 120s                 # Stable long sessions
+    heartbeat-interval: 40s               # Less frequent heartbeats
+    fetch-min-bytes: 1048576              # 1MB minimum fetch
+    fetch-max-wait: 5s                    # Wait longer for data
+    isolation-level: "read_committed"
+    concurrency: 4                        # Moderate parallelism
+    
+  topics:
+    orders:
+      name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+      partitions: 6                       # Balanced partitioning
+      replication-factor: 3
+
+---
+# ==============================================================================
+# RESOURCE CONSTRAINED CONFIGURATION
+# For development or resource-limited environments
+# ==============================================================================
+spring:
+  profiles: resource-constrained
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  
+  producer:
+    # Minimal resource usage
+    acks: "1"                             # Leader acknowledgment only
+    retries: 5                            # Limited retries
+    batch-size: 4096                      # 4KB batches
+    linger-ms: 50                         # Quick batching
+    compression-type: "snappy"            # Efficient compression
+    buffer-memory: 16777216               # 16MB buffer
+    enable-idempotence: false             # Reduce overhead
+    max-in-flight-requests-per-connection: 1
+    request-timeout: 15s
+    delivery-timeout: 60s
+    
+  consumer:
+    # Light resource consumption
+    group-id: ${KAFKA_CONSUMER_GROUP:resource-constrained-group}
+    auto-offset-reset: "earliest"
+    enable-auto-commit: true              # Simpler processing
+    max-poll-records: 100                 # Small batches
+    max-poll-interval: 5m
+    session-timeout: 30s
+    heartbeat-interval: 10s
+    fetch-min-bytes: 1024                 # 1KB minimum
+    fetch-max-wait: 500ms
+    isolation-level: "read_committed"
+    concurrency: 1                        # Single thread
+    
+  topics:
+    orders:
+      name: ${KAFKA_ORDERS_TOPIC:orders-topic}
+      partitions: 1                       # Minimal partitioning
+      replication-factor: 1               # No replication for dev
+
+---
+# ==============================================================================
+# MONITORING AND SIZING PROPERTIES
+# Use these properties to monitor and tune your configuration
+# ==============================================================================
+
+# JMX Configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+    jmx:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    enable:
+      kafka: true
+      
+# Kafka-specific monitoring properties
+spring:
+  kafka:
+    client-id: ${spring.application.name:kafka-app}
+    properties:
+      # Producer metrics
+      metric.reporters: org.apache.kafka.common.metrics.JmxReporter
+      metrics.sample.window.ms: 30000
+      metrics.num.samples: 2
+      
+      # Security (if needed)
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      
+# Logging configuration for monitoring
+logging:
+  level:
+    org.apache.kafka: WARN                # Reduce noise
+    org.springframework.kafka: INFO       # Important Kafka events
+    com.company.kafka: DEBUG              # Your application events
+    
+# Application-specific sizing properties
+app:
+  kafka:
+    # Sizing hints for runtime adjustment
+    expected-message-rate: 1000           # Messages per second
+    average-message-size: 1024            # Bytes
+    peak-multiplier: 3                    # Peak traffic multiplier
+    processing-time-per-message: 5        # Milliseconds
+    
+    # Circuit breaker settings
+    circuit-breaker:
+      failure-rate-threshold: 50          # Percentage
+      wait-duration-in-open-state: 60s
+      sliding-window-size: 100
+      
+    # Retry settings  
+    retry:
+      max-attempts: 3
+      delay: 1s
+      multiplier: 2.0
+      max-delay: 10s
