@@ -2,9 +2,9 @@ package com.company.kafka.service;
 
 import com.company.kafka.config.KafkaProperties;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,13 +45,31 @@ class KafkaProducerServiceTest {
     @Mock
     private KafkaProperties kafkaProperties;
     
-    @Mock
     private MeterRegistry meterRegistry;
 
     private KafkaProducerService producerService;
 
     @BeforeEach
     void setUp() {
+        // Use a real SimpleMeterRegistry instead of mock
+        meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        
+        // Setup mock kafkaProperties with nested structure
+        KafkaProperties.TopicsProperties topics = org.mockito.Mockito.mock(KafkaProperties.TopicsProperties.class);
+        KafkaProperties.TopicConfig ordersConfig = org.mockito.Mockito.mock(KafkaProperties.TopicConfig.class);
+        KafkaProperties.TopicConfig paymentsConfig = org.mockito.Mockito.mock(KafkaProperties.TopicConfig.class);
+        KafkaProperties.TopicConfig notificationsConfig = org.mockito.Mockito.mock(KafkaProperties.TopicConfig.class);
+        
+        org.mockito.Mockito.when(ordersConfig.name()).thenReturn("orders-topic");
+        org.mockito.Mockito.when(paymentsConfig.name()).thenReturn("payments-topic");
+        org.mockito.Mockito.when(notificationsConfig.name()).thenReturn("notifications-topic");
+        
+        org.mockito.Mockito.when(topics.orders()).thenReturn(ordersConfig);
+        org.mockito.Mockito.when(topics.payments()).thenReturn(paymentsConfig);
+        org.mockito.Mockito.when(topics.notifications()).thenReturn(notificationsConfig);
+        
+        org.mockito.Mockito.when(kafkaProperties.topics()).thenReturn(topics);
+        
         producerService = new KafkaProducerService(kafkaTemplate, kafkaProperties, meterRegistry);
     }
 
@@ -62,10 +80,7 @@ class KafkaProducerServiceTest {
         String key = "test-key";
         String message = "test-message";
         
-        RecordMetadata metadata = new RecordMetadata(
-            new TopicPartition(topic, 0), 
-            0L, 0L, 0L, null, 0, 0
-        );
+        RecordMetadata metadata = org.mockito.Mockito.mock(RecordMetadata.class);
         ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(topic, key, message);
         SendResult<String, Object> sendResult = new SendResult<>(producerRecord, metadata);
         
@@ -87,10 +102,7 @@ class KafkaProducerServiceTest {
         String topic = "test-topic";
         String message = "test-message";
         
-        RecordMetadata metadata = new RecordMetadata(
-            new TopicPartition(topic, 0), 
-            0L, 0L, 0L, null, 0, 0
-        );
+        RecordMetadata metadata = org.mockito.Mockito.mock(RecordMetadata.class);
         ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(topic, null, message);
         SendResult<String, Object> sendResult = new SendResult<>(producerRecord, metadata);
         

@@ -49,6 +49,44 @@ spring:
 kafka:
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   
+  # Unified Streaming Processor Configuration
+  streaming:
+    # Thread pool settings
+    core-threads: 2
+    max-threads: 8
+    worker-threads: 4
+    keep-alive-time: 60s
+    
+    # Queue and buffer settings
+    queue-capacity: 1000
+    task-queue-capacity: 500
+    
+    # Health monitoring
+    health-check-interval: 30s
+    max-error-rate: 0.05
+    
+    # Circuit breaker configuration
+    circuit-breaker-config:
+      failure-threshold: 10
+      timeout: 60s
+      success-threshold: 5
+      reset-timeout: 5m
+    
+    # Topic-specific configurations
+    topics:
+      orders:
+        buffer-size: 100
+        processing-timeout: 30s
+        max-concurrency: 2
+      payments:
+        buffer-size: 200
+        processing-timeout: 60s
+        max-concurrency: 4
+      default-config:
+        buffer-size: 150
+        processing-timeout: 45s
+        max-concurrency: 3
+  
   producer:
     acks: all
     retries: 2147483647
